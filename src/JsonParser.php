@@ -4,20 +4,25 @@ namespace App;
 
 class JsonParser extends JsonExplorer
 {
-    protected $namedNodes = [];
+    protected $iterator;
 
-    public function getNamedNodes(): array
+    public function __construct()
     {
-        $recursiveIterator = new \RecursiveIteratorIterator(
+        parent::__construct();
+
+        $this->iterator = new \RecursiveIteratorIterator(
             new \RecursiveArrayIterator($this->spec),
             \RecursiveIteratorIterator::SELF_FIRST
         );
+    }
 
+    public function getNamedNodes(): array
+    {
         $namedNodes = [];
 
-        foreach ($recursiveIterator as $key => $value) {
-            if (is_array($value) && array_key_exists('name', $value)) {
-                $namedNodes[] = $value;
+        foreach ($this->iterator as $node) {
+            if (is_array($node) && array_key_exists('name', $node)) {
+                $namedNodes[] = $node;
             }
         }
 
@@ -29,26 +34,21 @@ class JsonParser extends JsonExplorer
 
     public function getNodeValues(string $name): array
     {
-        $recursiveIterator = new \RecursiveIteratorIterator(
-            new \RecursiveArrayIterator($this->spec),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-
         $namedNodes = [];
 
-        foreach ($recursiveIterator as $key => $value) {
-            if (is_array($value) && array_key_exists('name', $value)) {
-                $arrayFound = false;
+        foreach ($this->iterator as $node) {
+            if (is_array($node) && array_key_exists('name', $node)) {
+                $isLeafNode = true;
 
-                if ($value['name'] === $name) {
-                    foreach ($value as $subNode) {
-                        if (is_array($subNode)) {
-                            $arrayFound = true;
+                if ($node['name'] === $name) {
+                    foreach ($node as $childNode) {
+                        if (is_array($childNode)) {
+                            $isLeafNode = false;
                         }
                     }
 
-                    if (!$arrayFound) {
-                        $namedNodes[] = $value;
+                    if ($isLeafNode) {
+                        $namedNodes[] = $node;
                     }
                 }
             }
